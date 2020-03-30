@@ -1,0 +1,4 @@
+libopenzwave
+npm
+openzwave
+shadow-utils
