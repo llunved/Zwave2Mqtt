@@ -2,3 +2,4 @@ libopenzwave
 npm
 openzwave
 shadow-utils
+systemd-udev

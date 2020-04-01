@@ -1,15 +1,2 @@
-automake
-bzip2
-cmake
-gcc
-gcc-c++
-gnupg
-kernel-devel
-libopenzwave-devel
-libudev-devel
-libusb-devel
-make
-openssl-devel
-python
-tar
-xz
+vi
+less
