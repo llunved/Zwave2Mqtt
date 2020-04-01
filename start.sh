@@ -1,5 +1,5 @@
 #!/bin/bash
 
 cd /zwave2mqtt
-npm start
+exec npm start
 
