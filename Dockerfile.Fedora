@@ -57,13 +57,16 @@ RUN adduser -u 1010 -r -g root -d /zwave2mqtt -s /sbin/nologin -c "zwave2mqtt us
 ADD ./entrypoint.sh /sbin/ 
 ADD ./install.sh /sbin/ 
 ADD ./uninstall.sh /sbin/ 
+ADD ./start.sh /bin/ 
 RUN chmod +x /sbin/entrypoint.sh 
 RUN chmod +x /sbin/install.sh 
 RUN chmod +x /sbin/uninstall.sh 
+RUN chmod +x /bin/start.sh
 
 ENTRYPOINT ["/sbin/entrypoint.sh"]
-CMD ["npm","start"]
+CMD ["/bin/start.sh"]
 
+LABEL RUN="podman run --rm -t -i --name \$NAME -p 8091:8091 --device /dev/ttyACM0 --entrypoint /sbin/entrypoint.sh -v /var/lib/zwave2mqtt:/zwave2mqtt/store -v /var/log/zwave2mqtt:/var/log/zwave2mqtt \$IMAGE /bin/start.sh"
 LABEL INSTALL="podman run --rm -t -i --privileged --rm --net=host --ipc=host --pid=host -v /:/host -v /run:/run -e HOST=/host -e IMAGE=\$IMAGE -e NAME=\$NAME -e LOGDIR=/var/log -e DATADIR=/var/lib --entrypoint /bin/sh  \$IMAGE /sbin/install.sh"
 LABEL UNINSTALL="podman run --rm -t -i --privileged --rm --net=host --ipc=host --pid=host -v /:/host -v /run:/run -e HOST=/host -e IMAGE=\$IMAGE -e NAME=\$NAME -e LOGDIR=/var/log -e DATADIR=/var/lib --entrypoint /bin/sh  \$IMAGE /sbin/uninstall.sh"
 
