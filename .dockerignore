@@ -1,0 +1,15 @@
+.babelrc
+.dockerignore
+.editorconfig
+.eslintignore
+.eslintrc.js
+.git
+.github
+.gitignore
+.postcssrc.js
+.travis.yml
+Dockerfile.Fedora
+!README*.md
+!CHANGELOG*md
+!*.swp
+
