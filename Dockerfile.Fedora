@@ -12,20 +12,24 @@ USER root
 RUN mkdir -p /zwave2mqtt
 WORKDIR /zwave2mqtt
 
-ADD ./rpmreqs-rt.txt ./rpmreqs-dev.txt /zwave2mqtt/
+ADD ./rpmreqs-rt.txt ./rpmreqs-build.txt ./rpmreqs-dev.txt /zwave2mqtt/
 
 ENV http_proxy=$HTTP_PROXY
 RUN rpm -ivh  https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$FEDORA_RELEASE.noarch.rpm \
     && dnf -y upgrade \
-    && dnf -y install $(cat rpmreqs-rt.txt) $(cat rpmreqs-dev.txt) \
+    && dnf -y install $(cat rpmreqs-rt.txt) $(cat rpmreqs-build.txt) \
+    && if [ ! -z "$DEVBUILD" ] ; then dnf -y install $(cat rpmreqs-dev.txt); fi \ 
+    && rm -fv rpmreqs*.txt \
     && dnf -y clean all
 
 ENV LANG=en_US.UTF-8
        
 ADD . /zwave2mqtt/
 
-RUN npm install 
-RUN npm run build
+RUN npm install \ 
+    # Add some dev / debug content
+#    && if [ ! -z "$DEVBUILD" ] ; then npm install -g nodemon; fi \
+    && npm run build
 
 
 FROM $FEDORA_IMAGE_RT:$FEDORA_RELEASE
@@ -41,6 +45,7 @@ ADD ./rpmreqs-rt.txt /zwave2mqtt
 
 RUN microdnf -y update \
     && microdnf -y install $(cat rpmreqs-rt.txt) \
+    && if [ ! -z "$DEVBUILD" ] ; then microdnf -y install ${cat rpmreqs-dev.txt); fi \ 
     && microdnf -y clean all \
     && rm -fv rpmreqs-rt.txt
  
@@ -48,11 +53,10 @@ COPY --from=build /zwave2mqtt /zwave2mqtt
 
 ENV USER=zwave2mqtt
 ENV CHOWN=true 
-ENV CHOWN_DIRS="/zwave2mqtt/store,/var/log/zwave2mqtt" 
+ENV CHOWN_DIRS="/zwave2mqtt/store /var/log/zwave2mqtt" 
   
-RUN adduser -u 1010 -r -g root -d /zwave2mqtt -s /sbin/nologin -c "zwave2mqtt user" ${USER} 
-#\
-#    && chown -R ${USER}:root /zwave2mqtt
+RUN adduser -u 1010 -r -g root -G wheel -d /zwave2mqtt -s /sbin/nologin -c "zwave2mqtt user" ${USER} 
+    && if [ ! -z "$DEVBUILD" ] ; then chown -R ${USER}:root /zwave2mqtt ; fi
 
 ADD ./entrypoint.sh /sbin/ 
 ADD ./install.sh /sbin/ 
