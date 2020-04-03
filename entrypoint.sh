@@ -6,8 +6,8 @@ set -x #-e
 if [ -n "$CHOWN" ]; then
    for CUR_DIR in $CHOWN_DIRS
        do
-          chown -R $USER:0 $CUR_DIR
-	  chmod -R 775 $CUR_DIR
+          chown -vR $USER:0 $CUR_DIR
+	  chmod -vR 775 $CUR_DIR
        done
 fi  
 
