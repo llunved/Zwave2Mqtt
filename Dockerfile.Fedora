@@ -26,10 +26,10 @@ ENV LANG=en_US.UTF-8
        
 ADD . /zwave2mqtt/
 
-RUN npm install \ 
-    # Add some dev / debug content
-#    && if [ ! -z "$DEVBUILD" ] ; then npm install -g nodemon; fi \
-    && npm run build
+RUN npm install  
+# Add some dev / debug content
+RUN if [ ! -z "$DEVBUILD" ] ; then npm install -g nodemon; fi 
+RUN npm run build
 
 
 FROM $FEDORA_IMAGE_RT:$FEDORA_RELEASE
@@ -41,21 +41,24 @@ WORKDIR /zwave2mqtt
 
 ENV http_proxy=$HTTP_PROXY
 
-ADD ./rpmreqs-rt.txt /zwave2mqtt
+ADD ./rpmreqs-rt.txt ./rpmreqs-dev.txt /zwave2mqtt
 
 RUN microdnf -y update \
     && microdnf -y install $(cat rpmreqs-rt.txt) \
-    && if [ ! -z "$DEVBUILD" ] ; then microdnf -y install ${cat rpmreqs-dev.txt); fi \ 
+    && if [ ! -z "$DEVBUILD" ] ; then microdnf -y install $(cat rpmreqs-dev.txt); fi \ 
     && microdnf -y clean all \
     && rm -fv rpmreqs-rt.txt
- 
+
+#move the oepnzwave config so that we can mount it persistently from the host
+RUN mv -fv  /etc/openzwave /etc/openzwave.default && mkdir -pv /etc/openzwave
+
 COPY --from=build /zwave2mqtt /zwave2mqtt
 
 ENV USER=zwave2mqtt
 ENV CHOWN=true 
-ENV CHOWN_DIRS="/zwave2mqtt/store /var/log/zwave2mqtt" 
+ENV CHOWN_DIRS="/zwave2mqtt/store /var/log/zwave2mqtt /etc/openzwave" 
   
-RUN adduser -u 1010 -r -g root -G wheel -d /zwave2mqtt -s /sbin/nologin -c "zwave2mqtt user" ${USER} 
+RUN adduser -u 1010 -r -g root -G dialout -d /zwave2mqtt -s /sbin/nologin -c "zwave2mqtt user" ${USER} \
     && if [ ! -z "$DEVBUILD" ] ; then chown -R ${USER}:root /zwave2mqtt ; fi
 
 ADD ./entrypoint.sh /sbin/ 
@@ -67,10 +70,11 @@ RUN chmod +x /sbin/install.sh
 RUN chmod +x /sbin/uninstall.sh 
 RUN chmod +x /bin/start.sh
 
+EXPOSE 8091
 ENTRYPOINT ["/sbin/entrypoint.sh"]
 CMD ["/bin/start.sh"]
 
-LABEL RUN="podman run --rm -t -i --name \$NAME -p 8091:8091 --device /dev/ttyACM0 --entrypoint /sbin/entrypoint.sh -v /var/lib/zwave2mqtt:/zwave2mqtt/store -v /var/log/zwave2mqtt:/var/log/zwave2mqtt \$IMAGE /bin/start.sh"
+LABEL RUN="podman run --rm -t -i --name \$NAME -p 8091:8091 --net=host --device /dev/ttyACM0 --entrypoint /sbin/entrypoint.sh -v /var/lib/zwave2mqtt/zwave2mqtt:/zwave2mqtt/store -v /var/lib/zwave2mqtt/openzwave:/etc/openzwave -v /var/log/zwave2mqtt:/var/log/zwave2mqtt \$IMAGE /bin/start.sh"
 LABEL INSTALL="podman run --rm -t -i --privileged --rm --net=host --ipc=host --pid=host -v /:/host -v /run:/run -e HOST=/host -e IMAGE=\$IMAGE -e NAME=\$NAME -e LOGDIR=/var/log -e DATADIR=/var/lib --entrypoint /bin/sh  \$IMAGE /sbin/install.sh"
 LABEL UNINSTALL="podman run --rm -t -i --privileged --rm --net=host --ipc=host --pid=host -v /:/host -v /run:/run -e HOST=/host -e IMAGE=\$IMAGE -e NAME=\$NAME -e LOGDIR=/var/log -e DATADIR=/var/lib --entrypoint /bin/sh  \$IMAGE /sbin/uninstall.sh"
 
