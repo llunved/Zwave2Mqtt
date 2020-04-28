@@ -3,3 +3,4 @@ npm
 openzwave
 shadow-utils
 systemd-udev
+tzdata
