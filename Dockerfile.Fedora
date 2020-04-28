@@ -1,12 +1,16 @@
-ARG FEDORA_IMAGE_BUILD=fedora
-ARG FEDORA_IMAGE_RT=fedora-minimal
-ARG FEDORA_RELEASE=31
-ARG HTTP_PROXY=""
+ARG OS_RELEASE=31
+ARG OS_IMAGE=fedora:$OS_RELEASE
 
-FROM $FEDORA_IMAGE_BUILD:$FEDORA_RELEASE as build
+FROM $OS_IMAGE as build
+
+ARG OS_RELEASE
+ARG OS_IMAGE
+ARG HTTP_PROXY=""
+ARG USER="zwave2mqtt"
 
 LABEL MAINTAINER riek@llunved.net
 
+ENV LANG=en_US.UTF-8
 USER root
 
 RUN mkdir -p /zwave2mqtt
@@ -15,15 +19,27 @@ WORKDIR /zwave2mqtt
 ADD ./rpmreqs-rt.txt ./rpmreqs-build.txt ./rpmreqs-dev.txt /zwave2mqtt/
 
 ENV http_proxy=$HTTP_PROXY
-RUN rpm -ivh  https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$FEDORA_RELEASE.noarch.rpm \
+RUN rpm -ivh  https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$OS_RELEASE.noarch.rpm \
+    && rpm -ivh  https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$OS_RELEASE.noarch.rpm \
     && dnf -y upgrade \
     && dnf -y install $(cat rpmreqs-rt.txt) $(cat rpmreqs-build.txt) \
-    && if [ ! -z "$DEVBUILD" ] ; then dnf -y install $(cat rpmreqs-dev.txt); fi \ 
-    && rm -fv rpmreqs*.txt \
-    && dnf -y clean all
+    && if [ ! -z "$DEVBUILD" ] ; then dnf -y install $(cat rpmreqs-dev.txt); fi 
 
-ENV LANG=en_US.UTF-8
-       
+
+# Create the minimal target environment
+RUN mkdir /sysimg \
+    && dnf install --installroot /sysimg --releasever $OS_RELEASE --setopt install_weak_deps=false --nodocs -y coreutils-single glibc-minimal-langpack $(cat rpmreqs-rt.txt) \
+    && rm -rf /sysimg/var/cache/* \
+    && ls -alh /sysimg/var/cache
+
+RUN adduser -R /sysimg -u 1010 -r -g root -G dialout -d /zwave2mqtt -s /sbin/nologin -c "zwave2mqtt user" $USER
+
+#FIXME this needs to be more elegant
+RUN ln -s /sysimg/usr/share/zoneinfo/America/New_York /sysimg/etc/localtime
+
+#move the oepnzwave config so that we can mount it persistently from the host
+RUN mv -fv  /sysimg/etc/openzwave /sysimg/etc/openzwave.default && mkdir -pv /sysimg/etc/openzwave
+
 ADD . /zwave2mqtt/
 
 RUN npm install  
@@ -31,35 +47,21 @@ RUN npm install
 RUN if [ ! -z "$DEVBUILD" ] ; then npm install -g nodemon; fi 
 RUN npm run build
 
+RUN cp -pR /zwave2mqtt/ /sysimg/zwave2mqtt
 
-FROM $FEDORA_IMAGE_RT:$FEDORA_RELEASE
 
-USER root
+FROM scratch AS runtime
 
-RUN mkdir -p /zwave2mqtt
+COPY --from=build /sysimg /
+
 WORKDIR /zwave2mqtt
 
-ENV http_proxy=$HTTP_PROXY
-
-ADD ./rpmreqs-rt.txt ./rpmreqs-dev.txt /zwave2mqtt
-
-RUN microdnf -y update \
-    && microdnf -y install $(cat rpmreqs-rt.txt) \
-    && if [ ! -z "$DEVBUILD" ] ; then microdnf -y install $(cat rpmreqs-dev.txt); fi \ 
-    && microdnf -y clean all \
-    && rm -fv rpmreqs-rt.txt
-
-#move the oepnzwave config so that we can mount it persistently from the host
-RUN mv -fv  /etc/openzwave /etc/openzwave.default && mkdir -pv /etc/openzwave
-
-COPY --from=build /zwave2mqtt /zwave2mqtt
-
-ENV USER=zwave2mqtt
+ENV USER=$USER
 ENV CHOWN=true 
 ENV CHOWN_DIRS="/zwave2mqtt/store /var/log/zwave2mqtt /etc/openzwave" 
   
-RUN adduser -u 1010 -r -g root -G dialout -d /zwave2mqtt -s /sbin/nologin -c "zwave2mqtt user" ${USER} \
-    && if [ ! -z "$DEVBUILD" ] ; then chown -R ${USER}:root /zwave2mqtt ; fi
+#FIXME - Do we need this?
+RUN if [ ! -z "$DEVBUILD" ] ; then chown -R ${USER}:root /zwave2mqtt ; fi
 
 ADD ./entrypoint.sh \ 
     ./install.sh \ 
