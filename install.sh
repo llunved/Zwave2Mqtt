@@ -9,7 +9,7 @@ env
 
 # Make sure the host is mounted
 if [ ! -d /host/etc -o ! -d /host/proc -o ! -d /host/var/run ]; then
-	    echo "cockpit-run: host file system is not mounted at /host" >&2
+	    echo "Host file system is not mounted at /host" >&2
 	        exit 1
 fi
 
@@ -27,5 +27,5 @@ done
 
 
 chroot /host /usr/bin/podman create --name ${NAME} -p 8091:8091 --net=host --device /dev/ttyACM0 --entrypoint /sbin/entrypoint.sh -v ${DATADIR}/${NAME}/zwave2mqtt:/zwave2mqtt/store -v ${DATADIR}/${NAME}/openzwave:/etc/openzwave -v ${LOGDIR}/${NAME}:/var/log/zwave2mqtt ${IMAGE} /bin/start.sh
-chroot /host sh -c "/usr/bin/podman generate systemd --restart-policy=always -t 1 ${NAME} > /etc/systemd/system/zwave2mqtt.service"
+chroot /host sh -c "/usr/bin/podman generate systemd --restart-policy=always -t 1 ${NAME} > /etc/systemd/system/${NAME}.service && systemctl daemon-reload && systemctl enable ${NAME}"
 
