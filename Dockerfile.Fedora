@@ -61,14 +61,16 @@ ENV CHOWN_DIRS="/zwave2mqtt/store /var/log/zwave2mqtt /etc/openzwave"
 RUN adduser -u 1010 -r -g root -G dialout -d /zwave2mqtt -s /sbin/nologin -c "zwave2mqtt user" ${USER} \
     && if [ ! -z "$DEVBUILD" ] ; then chown -R ${USER}:root /zwave2mqtt ; fi
 
-ADD ./entrypoint.sh /sbin/ 
-ADD ./install.sh /sbin/ 
-ADD ./uninstall.sh /sbin/ 
+ADD ./entrypoint.sh \ 
+    ./install.sh \ 
+    ./upgrade.sh \
+    ./uninstall.sh /sbin/ 
 ADD ./start.sh /bin/ 
-RUN chmod +x /sbin/entrypoint.sh 
-RUN chmod +x /sbin/install.sh 
-RUN chmod +x /sbin/uninstall.sh 
-RUN chmod +x /bin/start.sh
+RUN chmod +x /sbin/entrypoint.sh \ 
+    && chmod +x /sbin/install.sh \
+    && chmod +x /sbin/upgrade.sh \
+    && chmod +x /sbin/uninstall.sh \ 
+    &&  chmod +x /bin/start.sh
 
 EXPOSE 8091
 ENTRYPOINT ["/sbin/entrypoint.sh"]
@@ -76,5 +78,6 @@ CMD ["/bin/start.sh"]
 
 LABEL RUN="podman run --rm -t -i --name \$NAME -p 8091:8091 --net=host --device /dev/ttyACM0 --entrypoint /sbin/entrypoint.sh -v /var/lib/zwave2mqtt/zwave2mqtt:/zwave2mqtt/store -v /var/lib/zwave2mqtt/openzwave:/etc/openzwave -v /var/log/zwave2mqtt:/var/log/zwave2mqtt \$IMAGE /bin/start.sh"
 LABEL INSTALL="podman run --rm -t -i --privileged --rm --net=host --ipc=host --pid=host -v /:/host -v /run:/run -e HOST=/host -e IMAGE=\$IMAGE -e NAME=\$NAME -e LOGDIR=/var/log -e DATADIR=/var/lib --entrypoint /bin/sh  \$IMAGE /sbin/install.sh"
+LABEL UPGRADE="podman run --rm -t -i --privileged --rm --net=host --ipc=host --pid=host -v /:/host -v /run:/run -e HOST=/host -e IMAGE=\$IMAGE -e NAME=\$NAME -e LOGDIR=/var/log -e DATADIR=/var/lib --entrypoint /bin/sh  \$IMAGE /sbin/upgrade.sh"
 LABEL UNINSTALL="podman run --rm -t -i --privileged --rm --net=host --ipc=host --pid=host -v /:/host -v /run:/run -e HOST=/host -e IMAGE=\$IMAGE -e NAME=\$NAME -e LOGDIR=/var/log -e DATADIR=/var/lib --entrypoint /bin/sh  \$IMAGE /sbin/uninstall.sh"
 
