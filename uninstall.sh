@@ -9,13 +9,14 @@ env
 
 # Make sure the host is mounted
 if [ ! -d /host/etc -o ! -d /host/proc -o ! -d /host/var/run ]; then
-	    echo "cockpit-run: host file system is not mounted at /host" >&2
+	    echo "Host file system is not mounted at /host" >&2
 	        exit 1
 fi
 
 # Remove the container and unit file
 
 chroot /host systemctl stop ${NAME}
+chroot /host systemctl disable ${NAME}
 chroot /host rm -fv /etc/systemd/system/dockerregistry.service
 chroot /host /usr/bin/podman rm ${NAME}
 
