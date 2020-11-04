@@ -13,8 +13,6 @@ test
 .eslintignore
 .eslintrc.js
 .gitignore
-.postcssrc.js
-.travis.yml
 Dockerfile.Fedora
 !*.swp
 
