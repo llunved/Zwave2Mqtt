@@ -7,4 +7,14 @@ docs
 .coverage
 pkg
 test
-node_modules
+.babelrc
+.dockerignore
+.editorconfig
+.eslintignore
+.eslintrc.js
+.gitignore
+.postcssrc.js
+.travis.yml
+Dockerfile.Fedora
+!*.swp
+
