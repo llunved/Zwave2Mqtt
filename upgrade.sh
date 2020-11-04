@@ -15,7 +15,8 @@ fi
 
 
 chroot /host sh -c "/usr/bin/systemctl stop ${NAME} && sleep 30 && /usr/bin/podman rm ${NAME} && sleep 15"
-chroot /host /usr/bin/podman create --name ${NAME} -p 8091:8091 --net=host --device /dev/ttyACM0 --entrypoint /sbin/entrypoint.sh -v ${DATADIR}/${NAME}/zwave2mqtt:/zwave2mqtt/store:rw -v ${DATADIR}/${NAME}/openzwave:/etc/openzwave:rw -v ${LOGDIR}/${NAME}:/var/log/zwave2mqtt:rw ${IMAGE} /bin/start.sh
+chroot /host /usr/bin/podman create --name ${NAME} -p 8091:8091 --net=host --device /dev/ttyACM0:rw --entrypoint /sbin/entrypoint.sh -v ${DATADIR}/${NAME}/zwave2mqtt:/zwave2mqtt/store:rw,z -v ${DATADIR}/${NAME}/openzwave:/etc/openzwave:rw,z -v ${LOGDIR}/${NAME}:/var/log/zwave2mqtt:rw,z ${IMAGE} /bin/start.sh
+
 chroot /host sh -c "/usr/bin/podman generate systemd --restart-policy=always -t 1 ${NAME} > /etc/systemd/system/${NAME}.service && systemctl daemon-reload"
 chroot /host sh -c "/usr/bin/systemctl start ${NAME} "
 
