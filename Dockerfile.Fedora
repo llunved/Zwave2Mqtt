@@ -19,7 +19,7 @@ WORKDIR /zwave2mqtt
 ADD ./rpmreqs-rt.txt ./rpmreqs-build.txt ./rpmreqs-dev.txt /zwave2mqtt/
 
 ENV http_proxy=$HTTP_PROXY
-RUN dnf install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$OS_RELEASE.noarch.rpm \
+RUN dnf -y install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$OS_RELEASE.noarch.rpm \
     https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$OS_RELEASE.noarch.rpm
     && dnf -y upgrade \
     && dnf -y install $(cat rpmreqs-rt.txt) $(cat rpmreqs-build.txt) \
