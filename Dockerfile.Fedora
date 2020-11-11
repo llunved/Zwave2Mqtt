@@ -1,4 +1,4 @@
-ARG OS_RELEASE=32
+ARG OS_RELEASE=33
 ARG OS_IMAGE=fedora:$OS_RELEASE
 
 FROM $OS_IMAGE as build
@@ -19,12 +19,11 @@ WORKDIR /zwave2mqtt
 ADD ./rpmreqs-rt.txt ./rpmreqs-build.txt ./rpmreqs-dev.txt /zwave2mqtt/
 
 ENV http_proxy=$HTTP_PROXY
-RUN rpm -ivh  https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$OS_RELEASE.noarch.rpm \
-    && rpm -ivh  https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$OS_RELEASE.noarch.rpm \
+RUN dnf install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$OS_RELEASE.noarch.rpm \
+    https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$OS_RELEASE.noarch.rpm
     && dnf -y upgrade \
     && dnf -y install $(cat rpmreqs-rt.txt) $(cat rpmreqs-build.txt) \
     && if [ ! -z "$DEVBUILD" ] ; then dnf -y install $(cat rpmreqs-dev.txt); fi 
-
 
 # Create the minimal target environment
 RUN mkdir /sysimg \
