@@ -1,2 +1,5 @@
 vi
 less
+microdnf
+rpm
+strace
